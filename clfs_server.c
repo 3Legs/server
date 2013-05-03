@@ -81,7 +81,7 @@ void main(void)
 				close(socketfd);
 				exit(1);
 			}
-		
+		printf("Client connected...\n");		
 		/* Create new thread */		
 		rtn=pthread_create(&a_thread,NULL, pthread_fn, &new_fd);
 	 	if(rtn!=0)
@@ -97,7 +97,6 @@ void main(void)
 
 void *pthread_fn(void *arg)
 {
-	printf("Client connected...\n");
 	struct clfs_req req;
 	int rtn;
 	int new_fd = *(int *)arg;
