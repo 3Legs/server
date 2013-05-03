@@ -32,6 +32,7 @@ enum clfs_status {
 pthread_mutex_t work_mutex;
 struct sockaddr_in servip, clntip;
 void *pthread_fn(void *arg);
+void send_status(int new_fd, enum clfs_status status);
 
 void main(void)
 {
@@ -94,6 +95,7 @@ void main(void)
 		printf("Client connected...\n");		
 		/* Create new thread */		
 		rtn=pthread_create(&a_thread,NULL, pthread_fn, &new_fd);
+
 	 	if(rtn!=0)
 			{
 				perror("Error occured in pthread_create\n");
@@ -118,15 +120,12 @@ void *pthread_fn(void *arg)
 	rtn = recv(new_fd, &req, sizeof(struct clfs_req), 0);
 	if(rtn < sizeof(struct clfs_req) || (req.type != CLFS_PUT && req.type != CLFS_GET && req.type != CLFS_RM))
 	{
-		perror("Error occured in recv\n");
-		status = CLFS_ERROR;
-		rtn = send(new_fd, &status, sizeof(status), 0);
-		exit(1);
+		send_status(new_fd, CLFS_ERROR);
+		pthread_exit(NULL);
 	}
 
 	/* Send OK to client */
-	status = CLFS_OK;
-	rtn = send(new_fd, &status, sizeof(status), 0);
+	send_status(new_fd, CLFS_OK);
 
 	if (req.type == CLFS_PUT) {
 		printf("Receive PUT request\n");
@@ -135,13 +134,9 @@ void *pthread_fn(void *arg)
 		/* Receive data from client */
 		rtn = recv(new_fd, data, req.size, 0);
 		if (rtn != req.size) {
-			perror("Error occured in recv\n");
-			status = CLFS_ERROR;
-			rtn = send(new_fd, &status, sizeof(status), 0);
-			exit(1);
+			send_status(new_fd, CLFS_ERROR);
+			goto end_PUT;
 		}
-		
-		int i;
 		
 		path = (char *) malloc(12+log10(req.inode));
 		sprintf(path, "clfs_store/%d.dat", req.inode);
@@ -149,46 +144,40 @@ void *pthread_fn(void *arg)
 		/* open the file */
 		fp = fopen((const char *)path, "w+");
 		if (fp == NULL) {
-			perror("Couldn't open file.\n");
-			status = CLFS_INVAL;
-			rtn = send(new_fd, &status, sizeof(status), 0);
-			exit(1);
+			send_status(new_fd, CLFS_INVAL);
+			goto end_PUT;
 		}
 
 		/* write to the file */
-		//rtn = fprintf(fp, (const char *)data);
 		rtn = fwrite((const char *)data, 1, req.size, fp);
 		if (rtn != req.size) {
-			perror("Error occured in fwrite\n");
-			status = CLFS_ACCESS;
-			rtn = send(new_fd, &status, sizeof(status), 0);
-			exit(1);
+			send_status(new_fd, CLFS_ACCESS);
+			goto end_PUT;
 		}
 
-		/* close the file */
+		/* Send OK to client */
+		send_status(new_fd, CLFS_OK);
+
+		/* Exit the thread */
+		end_PUT:
 		fclose(fp);
 		free(data);
 		free(path);
-
-		/* Send OK to client */
-		status = CLFS_OK;
-		rtn = send(new_fd, &status, sizeof(status), 0);		
+		pthread_exit(NULL);	
 	}
 
 	if (req.type == CLFS_GET) {
+		printf("Receive GET request\n");
 		unsigned char *data = malloc(req.size);
 		path = (char *) malloc(12+log10(req.inode));
 		sprintf(path, "clfs_store/%d.dat", req.inode);
 
 		if (fp = fopen(path, "r")) {
-	        status = CLFS_OK;
-			send(new_fd, &status, sizeof(status), 0);
+	        send_status(new_fd, CLFS_OK);
 	    }
 	    else {
-	    	perror("Couldn't open file\n");
-	    	status = CLFS_INVAL;
-			rtn = send(new_fd, &status, sizeof(status), 0);
-			exit(1);
+	    	send_status(new_fd, CLFS_INVAL);
+	    	goto end_GET;
 	    }
 /*
 	    fseek(fp, 0, SEEK_END);
@@ -202,21 +191,19 @@ void *pthread_fn(void *arg)
 */
     	rtn = fread(data, 1, req.size, fp);
     	if (rtn != req.size) {
-    		perror("Error occured in fread or size does not match\n");
-    		status = CLFS_ACCESS;
-			rtn = send(new_fd, &status, sizeof(status), 0);
-			exit(1);
+    		send_status(new_fd, CLFS_ACCESS);
+    		goto end_GET;
     	}
 
     	/* Send OK and data to client */
-		status = CLFS_OK;
-		send(new_fd, &status, sizeof(status), 0);
-		send(new_fd, data, req.size, 0);
+		send_status(new_fd, CLFS_OK);
 
-		/* close the file */
+		/* Exit the thread */
+		end_GET:
 		fclose(fp);
 		free(data);
 		free(path);
+		pthread_exit(NULL);
 	}
 
 	if (req.type == CLFS_RM) {
@@ -224,16 +211,40 @@ void *pthread_fn(void *arg)
 		sprintf(path, "clfs_store/%d.dat", req.inode);
 		rtn = remove(path);
  		if(rtn != 0 ) {
- 			perror("Couldn't open file\n");
-	    	status = CLFS_INVAL;
-			rtn = send(new_fd, &status, sizeof(status), 0);
-			exit(1);
+ 			send_status(new_fd, CLFS_INVAL);
+ 			goto end_RM;
  		}
 		printf("%s file deleted successfully.\n", path);
 
 		/* Send OK and data to client */
-		status = CLFS_OK;
-		send(new_fd, &status, sizeof(status), 0);
+		send_status(new_fd, CLFS_OK);
+
+		/* Exit the thread */
+		end_RM:
+		free(path);
+		pthread_exit(NULL);
 		}
 
+}
+
+void send_status(int new_fd, enum clfs_status status) {
+	switch(status) {
+		case CLFS_OK:
+			send(new_fd, &status, sizeof(status), 0);
+			break;
+		case CLFS_INVAL:
+			perror("Invalid address\n");
+			send(new_fd, &status, sizeof(status), 0);
+			break;
+		case CLFS_ACCESS:
+			perror("Couldn't read/write (length does not match)\n");
+			send(new_fd, &status, sizeof(status), 0);
+			break;
+		case CLFS_ERROR:
+			perror("Error occured in communicating\n");
+			send(new_fd, &status, sizeof(status), 0);
+			break;
+		default:
+			perror("Error occured in status\n");
+	}
 }
