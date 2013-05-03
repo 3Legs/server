@@ -39,6 +39,7 @@ void main(void)
 	int rtn;	
 	pthread_t a_thread;
 
+
 	/* Initiate the listening socket */
 	socketfd = socket(AF_INET,SOCK_STREAM,0);
 	if(socketfd==-1)
@@ -47,6 +48,15 @@ void main(void)
 		exit(1);
 	}	
 	printf("socketfd=%d\n",socketfd);
+
+	int tr=1;
+
+// kill "Address already in use" error message
+	if (setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR,&tr,sizeof(int)) == -1) {
+		perror("setsockopt");
+		exit(1);
+	}
+
 
 	bzero(&servip,sizeof(struct sockaddr_in));
 
@@ -119,6 +129,7 @@ void *pthread_fn(void *arg)
 	rtn = send(new_fd, &status, sizeof(status), 0);
 
 	if (req.type == CLFS_PUT) {
+		printf("Receive PUT request\n");
 		unsigned char *data = malloc(req.size);
 
 		/* Receive data from client */
