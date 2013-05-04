@@ -203,7 +203,7 @@ end_all:
 	pthread_exit(NULL);	
 }
 
-vonid send_status(int new_fd, enum clfs_status status) {
+void send_status(int new_fd, enum clfs_status status) {
 	send(new_fd, &status, sizeof(status), 0);
 	switch(status) {
 		case CLFS_INVAL:
