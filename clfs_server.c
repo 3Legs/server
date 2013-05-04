@@ -151,20 +151,20 @@ void *pthread_fn(void *arg)
 		fp = fopen((const char *)path, "w+");
 		if (fp == NULL) {
 			send_status(new_fd, CLFS_ERROR);
-			goto end_PUT;
+			goto end_with_close_fp;
 		}
 
 		/* write to the file */
 		rtn = fwrite((const char *)data, 1, req.size, fp);
 		if (rtn != req.size) {
 			send_status(new_fd, CLFS_ACCESS);
-			goto end_PUT;
+			goto end_with_close_fp;
 		}
-
 		send_status(new_fd, CLFS_OK);
 
-	end_PUT:
+	end_with_close_fp:
 		fclose(fp);
+	end_PUT:
 		free(data);
 
 	}
