@@ -130,6 +130,7 @@ void *pthread_fn(void *arg)
 			send_status(new_fd, CLFS_OK);
 			goto end_all;
 		}
+
 		unsigned char *data = malloc(req.size);
 
 		if (!data) {
@@ -144,6 +145,8 @@ void *pthread_fn(void *arg)
 			goto end_PUT;
 		}
 		
+		printf("Receive %d bytes data:%s\n", rtn, data);
+
 		/* open the file */
 		fp = fopen((const char *)path, "w+");
 		if (fp == NULL) {
