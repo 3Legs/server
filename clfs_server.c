@@ -95,7 +95,6 @@ int main(int argc, char** argv)
 				perror("Error occured in accept\n");
 				continue;
 		}
-
 		printf("Client connected on socket %d...\n", new_fd);	
 		rtn = pthread_create(&a_thread, NULL, pthread_fn, &new_fd);
 
@@ -110,7 +109,7 @@ int main(int argc, char** argv)
 
 static int __recv_file(int sockfd, char * path, unsigned int size) {
 	int r;
-	struct evict_page page_buf;
+	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
 	struct stat st;
 	int count = 0;
 
@@ -120,19 +119,20 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	}
 	
 	while (1) {
-		r = recv(sockfd, &page_buf, sizeof(struct evict_page), MSG_DONTWAIT);
+		r = recv(sockfd, page_buf, sizeof(struct evict_page), MSG_WAITALL);
 		if (r < sizeof(struct evict_page)) {
 			fclose(fp);
 			return CLFS_ERROR;
 		}
+		send_status(sockfd, CLFS_OK);
 		count++;
-		r = fwrite((const char*) (page_buf.data), 1, 4096, fp);
+		r = fwrite((const char*) (page_buf->data), 1, 4096, fp);
 		if (r < 4096) {
 			fclose(fp);
 			return CLFS_ACCESS;
 		}
 		
-		if (page_buf.end == 1)
+		if (page_buf->end == 1)
 			break;
 	} 
 	
