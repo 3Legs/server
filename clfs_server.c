@@ -11,6 +11,7 @@
 
 #define PORT 8888
 #define MAX_PENDING_CONNECTIONS SOMAXCONN
+#define REQ_SIZE_32BIT 12
 
 enum clfs_type {
 	CLFS_PUT,
@@ -20,11 +21,8 @@ enum clfs_type {
 
 struct clfs_req {
 	enum clfs_type type;
-	int pad1;
-	unsigned long inode;
-	int pad2;
-	unsigned long size;
-	int pad3;
+	int inode;
+	int size;
   };
 
 enum clfs_status {
@@ -115,12 +113,13 @@ void *pthread_fn(void *arg)
 	/* Receive clfs_req from client */
 	rtn = recv(new_fd, &req, sizeof(struct clfs_req), 0);
 
-	if(rtn != sizeof(struct clfs_req))
+	if(rtn != REQ_SIZE_32BIT)
 	{
 		printf("HERE! size: %d  size2: %d \n", rtn, sizeof(struct clfs_req));
 		send_status(new_fd, CLFS_ERROR);
 		goto end_all;
 	}
+
 	
 	path = (char *) malloc(12+log10(req.inode));
 	sprintf(path, "clfs_store/%lu.dat", req.inode);
