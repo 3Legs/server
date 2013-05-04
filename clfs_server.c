@@ -12,12 +12,14 @@
 #define PORT 8888
 #define MAX_PENDING_CONNECTIONS SOMAXCONN
 
+enum clfs_type {
+	CLFS_PUT,
+	CLFS_GET,
+	CLFS_RM
+};
+
 struct clfs_req {
-	enum {
-	      CLFS_PUT,
-	      CLFS_GET,
-	      CLFS_RM
-	} type;
+	enum clfs_type type;
 	unsigned long inode;
 	unsigned long size;
   };
