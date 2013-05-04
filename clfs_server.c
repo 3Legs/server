@@ -114,6 +114,7 @@ void *pthread_fn(void *arg)
 
 	if(rtn != sizeof(struct clfs_req))
 	{
+		printf("HERE! size: %d  size2: %d \n", rtn, sizeof(struct clfs_req));
 		send_status(new_fd, CLFS_ERROR);
 		goto end_all;
 	}
