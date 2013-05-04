@@ -87,13 +87,11 @@ void main(void)
 				continue;
 		}
 
-		printf("Client connected on socket %d...\n", new_fd);		
-		/* Create new thread */		
-		rtn=pthread_create(&a_thread, NULL, pthread_fn, &new_fd);
+		printf("Client connected on socket %d...\n", new_fd);	
+		rtn = pthread_create(&a_thread, NULL, pthread_fn, &new_fd);
 
 	 	if (rtn) {
 			perror("Error occured in pthread_create\n");
-			close(new_fd);
 			continue;
 		}
 	}
@@ -200,6 +198,7 @@ void *pthread_fn(void *arg)
 end_RM:
 	free(path);
 	close(new_fd);
+	printf("Thread about to exit\n");
 	pthread_exit(NULL);	
 }
 
