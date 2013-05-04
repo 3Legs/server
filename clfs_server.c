@@ -108,7 +108,7 @@ void *pthread_fn(void *arg)
 	int new_fd = *(int *)arg;
 	enum clfs_status status = CLFS_OK;
 	FILE *fp;
-	char *path;
+	char *path = malloc(30);
 
 	/* Receive clfs_req from client */
 	rtn = recv(new_fd, &req, sizeof(struct clfs_req), 0);
@@ -121,15 +121,14 @@ void *pthread_fn(void *arg)
 	}
 
 	
-	path = (char *) malloc(12+log10(req.inode));
-	sprintf(path, "clfs_store/%lu.dat", req.inode);
+	sprintf(path, "clfs_store/%d.dat", req.inode);
 	send_status(new_fd, CLFS_OK);
 
 	if (req.type == CLFS_PUT) {
 		printf("Receive PUT request\n");
 		if (req.size <= 0) {
 			send_status(new_fd, CLFS_OK);
-			goto end_RM;
+			goto end_all;
 		}
 		unsigned char *data = malloc(req.size);
 
@@ -205,8 +204,8 @@ void *pthread_fn(void *arg)
 		send_status(new_fd, CLFS_OK);
 	}
 end_RM:
-	free(path);
 end_all:
+	free(path);
 	close(new_fd);
 	printf("Thread about to exit\n");
 	pthread_exit(NULL);	
