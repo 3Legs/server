@@ -113,9 +113,9 @@ void *pthread_fn(void *arg)
 	if(rtn < sizeof(struct clfs_req) || (req.type != CLFS_PUT && req.type != CLFS_GET && req.type != CLFS_RM))
 	{
 		send_status(new_fd, CLFS_ERROR);
-		pthread_exit(NULL);
+		goto end_all;
 	}
-
+	
 	path = (char *) malloc(12+log10(req.inode));
 	sprintf(path, "clfs_store/%lu.dat", req.inode);
 	send_status(new_fd, CLFS_OK);
@@ -197,12 +197,13 @@ void *pthread_fn(void *arg)
 	}
 end_RM:
 	free(path);
+end_all:
 	close(new_fd);
 	printf("Thread about to exit\n");
 	pthread_exit(NULL);	
 }
 
-void send_status(int new_fd, enum clfs_status status) {
+vonid send_status(int new_fd, enum clfs_status status) {
 	send(new_fd, &status, sizeof(status), 0);
 	switch(status) {
 		case CLFS_INVAL:
