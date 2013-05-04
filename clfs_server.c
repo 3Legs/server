@@ -133,6 +133,12 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 		if (page_buf->end)
 			break;
 	} 
+	
+	if (!feof(fp)) {
+		printf("EOF not set!\n");
+		fclose(fp);
+		return CLFS_ERROR;
+	}
 
 	fclose(fp);
 	stat(path, &st);
