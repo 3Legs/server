@@ -140,10 +140,10 @@ void *pthread_fn(void *arg)
 
 		/* Receive data from client */
 		rtn = recv(new_fd, data, req.size, 0);
-		if (rtn != req.size) {
-			send_status(new_fd, CLFS_ERROR);
-			goto end_PUT;
-		}
+		/* if (rtn != req.size) { */
+		/* 	send_status(new_fd, CLFS_ERROR); */
+		/* 	goto end_PUT; */
+		/* } */
 		
 		printf("Receive %d bytes data:%s\n", rtn, data);
 
