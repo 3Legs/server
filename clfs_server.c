@@ -112,6 +112,7 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	int r;
 	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
 	struct stat st;
+	int count = 0;
 
 	FILE *fp = fopen((const char *)path, "w+");
 	if (fp == NULL) {
@@ -124,6 +125,7 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 			fclose(fp);
 			return CLFS_ERROR;
 		}
+		count++;
 		r = fwrite((const char *) page_buf->data, 1, 4096, fp);
 		if (r < 4096) {
 			fclose(fp);
@@ -134,6 +136,8 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 			break;
 	} 
 	
+	printf("Receive %d pages in total\n", count);
+
 	if (!feof(fp)) {
 		printf("EOF not set!\n");
 		fclose(fp);
