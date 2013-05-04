@@ -119,7 +119,7 @@ void *pthread_fn(void *arg)
 	}
 
 	path = (char *) malloc(12+log10(req.inode));
-	sprintf(path, "clfs_store/%d.dat", req.inode);
+	sprintf(path, "clfs_store/%lu.dat", req.inode);
 	send_status(new_fd, CLFS_OK);
 
 	if (req.type == CLFS_PUT) {
@@ -199,6 +199,7 @@ void *pthread_fn(void *arg)
 	}
 end_RM:
 	free(path);
+	close(new_fd);
 	pthread_exit(NULL);	
 }
 
