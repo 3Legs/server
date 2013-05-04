@@ -110,7 +110,7 @@ void *pthread_fn(void *arg)
 	/* Receive clfs_req from client */
 	rtn = recv(new_fd, &req, sizeof(struct clfs_req), 0);
 
-	if(rtn < sizeof(struct clfs_req) || (req.type != CLFS_PUT && req.type != CLFS_GET && req.type != CLFS_RM))
+	if(rtn != sizeof(struct clfs_req))
 	{
 		send_status(new_fd, CLFS_ERROR);
 		goto end_all;
@@ -122,6 +122,10 @@ void *pthread_fn(void *arg)
 
 	if (req.type == CLFS_PUT) {
 		printf("Receive PUT request\n");
+		if (req.size <= 0) {
+			send_status(new_fd, CLFS_OK);
+			goto end_RM;
+		}
 		unsigned char *data = malloc(req.size);
 
 		if (!data) {
