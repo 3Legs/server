@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <math.h>
 
 #define PORT 8888
@@ -32,12 +33,17 @@ enum clfs_status {
 	CLFS_ERROR              /* Other errors */
 };
 
+struct evict_page {
+	char data[4096];
+	int end;
+};
+
 pthread_mutex_t work_mutex;
 struct sockaddr_in servip, clntip;
 void *pthread_fn(void *arg);
 void send_status(int new_fd, enum clfs_status status);
 
-void main(void)
+int main(int argc, char** argv)
 {
 	int socketfd, new_fd;
 	int rtn;	
@@ -101,13 +107,46 @@ void main(void)
 	close(socketfd);
 }
 
+
+static int __recv_file(int sockfd, char * path, unsigned int size) {
+	int r;
+	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
+	struct stat st;
+
+	FILE *fp = fopen((const char *)path, "w+");
+	if (fp == NULL) {
+		return CLFS_ACCESS;
+	}
+	
+	while (1) {
+		r = recv(sockfd, page_buf, sizeof(struct evict_page), MSG_WAITALL);
+		if (r < sizeof(struct evict_page)) {
+			fclose(fp);
+			return CLFS_ERROR;
+		}
+		r = fwrite((const char *) page_buf->data, 1, 4096, fp);
+		if (r < 4096) {
+			fclose(fp);
+			return CLFS_ACCESS;
+		}
+          
+		if (page_buf->end)
+			break;
+	} 
+
+	fclose(fp);
+	stat(path, &st);
+	if (size > st.st_size)
+		return CLFS_ERROR;
+	return CLFS_OK;
+}
+
 void *pthread_fn(void *arg)
 {
 	struct clfs_req req;
 	int rtn;
-	int new_fd = *(int *)arg;
-	enum clfs_status status = CLFS_OK;
 	FILE *fp;
+	int new_fd = *(int *)arg;
 	char *path = malloc(30);
 
 	/* Receive clfs_req from client */
@@ -115,7 +154,6 @@ void *pthread_fn(void *arg)
 
 	if(rtn != REQ_SIZE_32BIT)
 	{
-		printf("HERE! size: %d  size2: %d \n", rtn, sizeof(struct clfs_req));
 		send_status(new_fd, CLFS_ERROR);
 		goto end_all;
 	}
@@ -126,55 +164,18 @@ void *pthread_fn(void *arg)
 
 	if (req.type == CLFS_PUT) {
 		printf("Receive PUT request\n");
-		if (req.size <= 0) {
-			send_status(new_fd, CLFS_OK);
-			goto end_all;
+		if (req.size > 0) {
+			rtn = __recv_file(new_fd, path, req.size);
+			send_status(new_fd, rtn);
 		}
-
-		unsigned char *data = malloc(req.size);
-
-		if (!data) {
-			perror("malloc error\n");
-			pthread_exit(NULL);
-		}
-
-		/* Receive data from client */
-		rtn = recv(new_fd, data, req.size, 0);
-		/* if (rtn != req.size) { */
-		/* 	send_status(new_fd, CLFS_ERROR); */
-		/* 	goto end_PUT; */
-		/* } */
-		
-		printf("Receive %d bytes data:%s\n", rtn, data);
-
-		/* open the file */
-		fp = fopen((const char *)path, "w+");
-		if (fp == NULL) {
-			send_status(new_fd, CLFS_ERROR);
-			goto end_with_close_fp;
-		}
-
-		/* write to the file */
-		rtn = fwrite((const char *)data, 1, req.size, fp);
-		if (rtn != req.size) {
-			send_status(new_fd, CLFS_ACCESS);
-			goto end_with_close_fp;
-		}
-		send_status(new_fd, CLFS_OK);
-
-	end_with_close_fp:
-		fclose(fp);
-	end_PUT:
-		free(data);
-
 	}
 
 	if (req.type == CLFS_GET) {
 		printf("Receive GET request\n");
 		unsigned char *data = malloc(req.size);
 
-
-		if (fp = fopen(path, "r")) {
+		fp = fopen(path, "r");
+		if (fp) {
 			send_status(new_fd, CLFS_OK);
 		}
 		else {
@@ -217,16 +218,18 @@ end_all:
 void send_status(int new_fd, enum clfs_status status) {
 	send(new_fd, &status, sizeof(status), 0);
 	switch(status) {
-		case CLFS_INVAL:
-			perror("Invalid address\n");
-			break;
-		case CLFS_ACCESS:
-			perror("Couldn't read/write (length does not match)\n");
-			break;
-		case CLFS_ERROR:
-			perror("Error occured in communicating\n");
-			break;
-		default:
-			perror("Fine!\n");
+	case CLFS_OK:
+		break;
+	case CLFS_INVAL:
+		perror("Invalid address\n");
+		break;
+	case CLFS_ACCESS:
+		perror("Couldn't read/write (length does not match)\n");
+		break;
+	case CLFS_ERROR:
+		perror("Error occured in communicating\n");
+		break;
+	default:
+		perror("Fine!\n");
 	}
 }
