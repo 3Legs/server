@@ -20,8 +20,11 @@ enum clfs_type {
 
 struct clfs_req {
 	enum clfs_type type;
+	int pad1;
 	unsigned long inode;
+	int pad2;
 	unsigned long size;
+	int pad3;
   };
 
 enum clfs_status {
