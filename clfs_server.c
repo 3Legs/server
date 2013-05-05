@@ -122,11 +122,6 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	
 	while (1) {
 		r = recv(sockfd, page_buf, sizeof(struct evict_page), MSG_WAITALL);
-		if (r < sizeof(struct evict_page)) {
-			printf("Receive %d pages in total\n", count);
-			r =  CLFS_ERROR;
-			goto out_fp;
-		}
 		count++;
 		if (page_buf->end) {
 			buflen = page_buf->end;
@@ -149,10 +144,13 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	printf("Receive %d pages in total\n", count);
 
 	stat(path, &st);
-	if (size > st.st_size)
+	if (size > st.st_size) {
+		printf("Received file size is too small\n");
 		r =  CLFS_ERROR;
-	else
+	} else {
+		printf("Received file OK!\n");
 		r =  CLFS_OK;
+	}
 out_fp:
 	fclose(fp);
 out_page_buf:
@@ -186,7 +184,6 @@ void *pthread_fn(void *arg)
 		if (req.size > 0) {
 			rtn = __recv_file(new_fd, path, req.size);
 			send_status(new_fd, rtn);
-			exit(1);
 		}
 	}
 
