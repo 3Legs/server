@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 		perror("Error occured in socket\n");
 		exit(1);
 	}	
-	printf("socketfd=%d\n",socketfd);
+	printf("[Server]Create socket: %d\n",socketfd);
 
 	int tr=1;
 
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 	}
 
 	while (1) {	
-		printf("Waiting for connection...\n");
+		printf("[Server]Waiting for connection...\n");
 		fflush(stdout);
 		new_fd = accept(socketfd,(struct sockaddr *)&clntip,&addrlen);
 		if (new_fd == -1) {
@@ -98,12 +98,11 @@ int main(int argc, char** argv)
 		}
 		printf("Client connected on socket %d...\n", new_fd);	
 		rtn = pthread_create(&a_thread, NULL, pthread_fn, &new_fd);
-
 	 	if (rtn) {
 			perror("Error occured in pthread_create\n");
 			continue;
 		}
-		printf("About tho handle another connection\n");
+		printf ("[Server] create thread %d\n",rtn);
 	}
 	close(socketfd);
 }
@@ -143,17 +142,17 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 			break;
 	} 
 	
-	printf("Receive %d pages in total\n", count);
+	printf("[Thread]Receive %d pages in total\n", count);
 out_fp:
 	fclose(fp);
 out_page_buf:
 	free(page_buf);
 	stat(path, &st);
 	if (size > st.st_size) {
-		printf("Received file size is too small\n");
+		printf("[Thread]Received file size is too small\n");
 		r =  CLFS_ERROR;
 	} else {
-		printf("Received file OK!\n");
+		printf("[Thread]Received file OK!\n");
 		r =  CLFS_OK;
 	}
 	return r;
@@ -180,7 +179,7 @@ void *pthread_fn(void *arg)
 	send_status(new_fd, CLFS_OK);
 
 	if (req.type == CLFS_PUT) {
-		printf("Receive PUT request\n");
+		printf("[Thread]Receive PUT request\n");
 		if (req.size > 0) {
 			rtn = __recv_file(new_fd, path, req.size);
 			send_status(new_fd, rtn);
@@ -229,7 +228,7 @@ void *pthread_fn(void *arg)
 end_all:
 	free(path);
 	close(new_fd);
-	printf("Thread about to exit\n");
+	printf("[Thread] about to exit\n");
 	pthread_exit(NULL);
 }
 
