@@ -116,15 +116,16 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 
 	FILE *fp = fopen((const char *)path, "w+");
 	if (fp == NULL) {
-		return CLFS_ACCESS;
+		r = CLFS_ACCESS;
+		goto out_page_buf;
 	}
 	
 	while (1) {
 		r = recv(sockfd, page_buf, sizeof(struct evict_page), MSG_WAITALL);
 		if (r < sizeof(struct evict_page)) {
-			fclose(fp);
 			printf("Receive %d pages in total\n", count);
-			return CLFS_ERROR;
+			r =  CLFS_ERROR;
+			goto out_fp;
 		}
 		count++;
 		if (page_buf->end) {
@@ -136,9 +137,9 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 
 		r = fwrite((const char*) (page_buf->data), 1, buflen, fp);
 		if (r < buflen) {
-			fclose(fp);
 			printf("Receive %d pages in total\n", count);
-			return CLFS_ACCESS;
+			r =  CLFS_ACCESS;
+			goto out_fp;
 		}
 		
 		if (page_buf->end)
@@ -147,12 +148,16 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	
 	printf("Receive %d pages in total\n", count);
 
-	fclose(fp);
-
 	stat(path, &st);
 	if (size > st.st_size)
-		return CLFS_ERROR;
-	return CLFS_OK;
+		r =  CLFS_ERROR;
+	else
+		r =  CLFS_OK;
+out_fp:
+	fclose(fp);
+out_page_buf:
+	free(page_buf);
+	return r;
 }
 
 void *pthread_fn(void *arg)
