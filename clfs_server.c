@@ -127,6 +127,18 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 		}
 		send_status(sockfd, CLFS_OK);
 		count++;
+
+		if (page_buf->end == 1) {
+			/* for last page, need to trim after EOF */
+			char * iter = page_buf->data;
+			while ((*iter) != EOF) {
+				fwrite((const char*) (page_buf->data), 1, 1, fp);
+				iter++;
+			}
+			fwrite(iter, 1, 1, fp);
+			break;
+			
+		}
 		r = fwrite((const char*) (page_buf->data), 1, 4096, fp);
 		if (r < 4096) {
 			fclose(fp);
@@ -134,8 +146,6 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 			return CLFS_ACCESS;
 		}
 		
-		if (page_buf->end == 1)
-			break;
 	} 
 	
 	printf("Receive %d pages in total\n", count);
