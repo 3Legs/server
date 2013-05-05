@@ -90,6 +90,7 @@ int main(int argc, char** argv)
 
 	while (1) {	
 		printf("Waiting for connection...\n");
+		fflush(STDOUT);
 		new_fd = accept(socketfd,(struct sockaddr *)&clntip,&addrlen);
 		if (new_fd == -1) {
 				perror("Error occured in accept\n");
