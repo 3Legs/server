@@ -114,7 +114,7 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	struct stat st;
 	int count = 0;
 
-	FILE *fp = fopen((const char *)path, "w+");
+	FILE *fp = fopen((const char *)path, "w");
 	if (fp == NULL) {
 		r = CLFS_ACCESS;
 		goto out_page_buf;
