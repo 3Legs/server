@@ -110,6 +110,7 @@ int main(int argc, char** argv)
 static int __recv_file(int sockfd, char * path, unsigned int size) {
 	int r;
 	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
+	size_t buflen;
 	struct stat st;
 	int count = 0;
 
@@ -125,28 +126,23 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 			printf("Receive %d pages in total\n", count);
 			return CLFS_ERROR;
 		}
-
 		count++;
-
-		if (page_buf->end == 1) {
-			/* for last page, need to trim after EOF */
-			char * iter = page_buf->data;
-			while ((*iter) != EOF) {
-				fwrite((const char*) iter, 1, 1, fp);
-				iter++;
-			}
-			fwrite(iter, 1, 1, fp);
-			
+		if (page_buf->end) {
+			buflen = page_buf->end;
 		} else {
-			send_status(sockfd, CLFS_OK);
-			r = fwrite((const char*) (page_buf->data), 1, 4096, fp);
-			if (r < 4096) {
-				fclose(fp);
-				printf("Receive %d pages in total\n", count);
-				return CLFS_ACCESS;
-			}
+			buflen = 4096;
+			send_status(sockfd, CLFS_OK);			
+		}
+
+		r = fwrite((const char*) (page_buf->data), 1, buflen, fp);
+		if (r < buflen) {
+			fclose(fp);
+			printf("Receive %d pages in total\n", count);
+			return CLFS_ACCESS;
 		}
 		
+		if (page_buf->end)
+			break;
 	} 
 	
 	printf("Receive %d pages in total\n", count);
