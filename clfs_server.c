@@ -163,7 +163,6 @@ void *pthread_fn(void *arg)
 {
 	struct clfs_req req;
 	int rtn;
-	FILE *fp;
 	int new_fd = *(int *)arg;
 	char *path = malloc(30);
 
