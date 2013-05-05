@@ -187,44 +187,44 @@ void *pthread_fn(void *arg)
 		goto end_all;
 	}
 
-	if (req.type == CLFS_GET) {
-		printf("Receive GET request\n");
-		unsigned char *data = malloc(req.size);
+/* 	if (req.type == CLFS_GET) { */
+/* 		printf("Receive GET request\n"); */
+/* 		unsigned char *data = malloc(req.size); */
 
-		fp = fopen(path, "r");
-		if (fp) {
-			send_status(new_fd, CLFS_OK);
-		}
-		else {
-			send_status(new_fd, CLFS_INVAL);
-			goto end_GET;
-		}
+/* 		fp = fopen(path, "r"); */
+/* 		if (fp) { */
+/* 			send_status(new_fd, CLFS_OK); */
+/* 		} */
+/* 		else { */
+/* 			send_status(new_fd, CLFS_INVAL); */
+/* 			goto end_GET; */
+/* 		} */
 
-		rtn = fread(data, 1, req.size, fp);
-		if (rtn != req.size) {
-			send_status(new_fd, CLFS_ACCESS);
-			goto end_GET;
-		}
+/* 		rtn = fread(data, 1, req.size, fp); */
+/* 		if (rtn != req.size) { */
+/* 			send_status(new_fd, CLFS_ACCESS); */
+/* 			goto end_GET; */
+/* 		} */
 
-		/* Send OK and data to client */
-		send_status(new_fd, CLFS_OK);
+/* 		/\* Send OK and data to client *\/ */
+/* 		send_status(new_fd, CLFS_OK); */
 
-		/* Exit the thread */
-	end_GET:
-		fclose(fp);
-		free(data);
-	}
+/* 		/\* Exit the thread *\/ */
+/* 	end_GET: */
+/* 		fclose(fp); */
+/* 		free(data); */
+/* 	} */
 
-	if (req.type == CLFS_RM) {
-		rtn = remove(path);
- 		if(rtn != 0 ) {
- 			send_status(new_fd, CLFS_INVAL);
- 			goto end_RM;
- 		}
-		printf("%s file deleted successfully.\n", path);
-		send_status(new_fd, CLFS_OK);
-	}
-end_RM:
+/* 	if (req.type == CLFS_RM) { */
+/* 		rtn = remove(path); */
+/*  		if(rtn != 0 ) { */
+/*  			send_status(new_fd, CLFS_INVAL); */
+/*  			goto end_RM; */
+/*  		} */
+/* 		printf("%s file deleted successfully.\n", path); */
+/* 		send_status(new_fd, CLFS_OK); */
+/* 	} */
+/* end_RM: */
 end_all:
 	free(path);
 	close(new_fd);
@@ -232,7 +232,7 @@ end_all:
 }
 
 void send_status(int new_fd, enum clfs_status status) {
-	send(new_fd, &status, sizeof(status), 0);
+	send(new_fd, &status, sizeof(status), MSG_NOSIGNAL);
 	switch(status) {
 	case CLFS_OK:
 		break;
