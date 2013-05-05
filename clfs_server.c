@@ -186,8 +186,7 @@ void *pthread_fn(void *arg)
 		if (req.size > 0) {
 			rtn = __recv_file(new_fd, path, req.size);
 			send_status(new_fd, rtn);
-			if (rtn != CLFS_OK)
-				exit(1);
+			exit(1);
 		}
 	}
 
