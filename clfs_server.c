@@ -229,7 +229,6 @@ end_all:
 	free(path);
 	close(new_fd);
 	printf("Thread about to exit\n");
-	pthread_exit(NULL);	
 }
 
 void send_status(int new_fd, enum clfs_status status) {
