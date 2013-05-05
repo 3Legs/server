@@ -102,6 +102,7 @@ int main(int argc, char** argv)
 			perror("Error occured in pthread_create\n");
 			continue;
 		}
+		printf("About tho handle another connection\n");
 	}
 	close(socketfd);
 }
@@ -229,6 +230,7 @@ end_all:
 	free(path);
 	close(new_fd);
 	printf("Thread about to exit\n");
+	pthread_exit(NULL);
 }
 
 void send_status(int new_fd, enum clfs_status status) {
