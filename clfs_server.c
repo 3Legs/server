@@ -147,13 +147,8 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	
 	printf("Receive %d pages in total\n", count);
 
-	if (!feof(fp)) {
-		printf("EOF not set!\n");
-		fclose(fp);
-		return CLFS_ERROR;
-	}
-
 	fclose(fp);
+
 	stat(path, &st);
 	if (size > st.st_size)
 		return CLFS_ERROR;
