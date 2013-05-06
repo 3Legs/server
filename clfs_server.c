@@ -43,7 +43,7 @@ pthread_mutex_t work_mutex;
 struct sockaddr_in servip, clntip;
 void *pthread_fn(void *arg);
 void send_status(int new_fd, enum clfs_status status);
-int read_status(int fd);
+enum clfs_status read_status(int fd);
 
 int main(int argc, char** argv)
 {
@@ -114,7 +114,6 @@ static void __send_file(int sockfd, FILE* fp) {
 	size_t buflen;
 	int count = 0;
 	enum clfs_status status;
-	int r;
 
 	while (1) {
 		buflen = fread(page_buf->data, 1, SEND_SIZE, fp);
