@@ -121,6 +121,7 @@ static void __send_file(int sockfd, FILE* fp) {
 		printf("Page %d, len %lu\n", count,buflen);
 		page_buf->end = 0;
 		if (buflen < SEND_SIZE) {
+			printf("Reaching last page with len %lu \n", buflen);
 			page_buf->end = buflen;
 		}
 		if (buflen == 0)
@@ -179,7 +180,7 @@ out_page_buf:
 	fstat(fno, &st);
 	if (size > st.st_size) {
 		printf("[Thread]Received file size is too small\n");
-		r =  CLFS_ERROR;
+		r =  CLFS_OK;
 	} else {
 		printf("[Thread]Received file OK!\n");
 		r =  CLFS_OK;
@@ -253,6 +254,8 @@ void send_status(int new_fd, enum clfs_status status) {
 	send(new_fd, &status, sizeof(status), MSG_NOSIGNAL);
 	switch(status) {
 	case CLFS_OK:
+		break;
+	case CLFS_NEXT:
 		break;
 	case CLFS_INVAL:
 		perror("Invalid address\n");
