@@ -113,6 +113,7 @@ static void __send_file(int sockfd, FILE* fp) {
 	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
 	size_t buflen;
 	int count = 0;
+	enum clfs_status status;
 	int r;
 
 	while (1) {
@@ -133,8 +134,8 @@ static void __send_file(int sockfd, FILE* fp) {
 			goto out;
 		}
 		
-		r = read_status(sockfd);
-		if (r != CLFS_OK) {
+		status = read_status(sockfd);
+		if (status != CLFS_OK) {
 			perror("[Thread]Oops!");
 			goto out;
 		}
@@ -267,11 +268,12 @@ void send_status(int new_fd, enum clfs_status status) {
 	}
 }
 
-inline int read_status(int fd) {
-	int r = 0;
+enum clfs_status read_status(int fd) {
+	enum clfs_status s;
 	int len;
-	len = recv(fd, &r, sizeof(int), 0);
-	if (len == sizeof(int))
-		return r;
+	len = recv(fd, &s, sizeof(enum clfs_status), 0);
+	if (len == sizeof(enum clfs_status))
+		return s;
+	printf("[Thread] Something wrong in read_status\n");
 	return CLFS_ERROR;
 }
