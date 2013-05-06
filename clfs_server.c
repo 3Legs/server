@@ -117,7 +117,7 @@ static void __send_file(int sockfd, FILE* fp) {
 
 	while (1) {
 		buflen = fread(page_buf->data, 1, SEND_SIZE, fp);
-
+		printf("Page %d, len %d\n", count, buflen);
 		page_buf->end = 0;
 		if (buflen < SEND_SIZE) {
 			page_buf->end = buflen;
