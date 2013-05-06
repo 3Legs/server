@@ -31,7 +31,8 @@ enum clfs_status {
 	CLFS_OK = 0,            /* Success */
 	CLFS_INVAL = 22,    /* Invalid address */
 	CLFS_ACCESS = 13,   /* Could not read/write file */
-	CLFS_ERROR              /* Other errors */
+	CLFS_ERROR,              /* Other errors */
+	CLFS_NEXT
 };
 
 struct evict_page {
@@ -117,7 +118,7 @@ static void __send_file(int sockfd, FILE* fp) {
 
 	while (1) {
 		buflen = fread(page_buf->data, 1, SEND_SIZE, fp);
-		printf("Page %d, len %d\n", count, buflen);
+		printf("Page %d, len %lu\n", count,buflen);
 		page_buf->end = 0;
 		if (buflen < SEND_SIZE) {
 			page_buf->end = buflen;
@@ -134,7 +135,7 @@ static void __send_file(int sockfd, FILE* fp) {
 		}
 		
 		status = read_status(sockfd);
-		if (status != CLFS_OK) {
+		if (status != CLFS_NEXT) {
 			perror("[Thread]Oops!");
 			goto out;
 		}
@@ -157,7 +158,7 @@ static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
 			buflen = page_buf->end;
 		} else {
 			buflen = SEND_SIZE;
-			send_status(sockfd, CLFS_OK);			
+			send_status(sockfd, CLFS_NEXT);			
 		}
 
 		r = fwrite((const char*) (page_buf->data), 1, buflen, fp);
