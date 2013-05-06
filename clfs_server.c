@@ -122,18 +122,20 @@ static void __send_file(int sockfd, FILE* fp) {
 		if (buflen < SEND_SIZE) {
 			page_buf->end = buflen;
 		}
+		if (buflen == 0)
+			page_buf->end = -1;
 		
 		send(sockfd, page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
 		count++;
 		if (page_buf->end) {
 			/* after last page we are done */
-			printf("Send %d pages\n", count);
+			printf("[Thread]Send %d pages\n", count);
 			return;
 		}
 		
 		r = read_status(sockfd);
 		if (r != CLFS_OK) {
-			perror("Oops!");
+			perror("[Thread]Oops!");
 			return;
 		}
 	}
@@ -158,7 +160,7 @@ static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
 
 		r = fwrite((const char*) (page_buf->data), 1, buflen, fp);
 		if (r < buflen) {
-			printf("Receive %d pages in total\n", count);
+			printf("[Thread]Receive %d pages in total\n", count);
 			r =  CLFS_ACCESS;
 			goto out_page_buf;
 		}
