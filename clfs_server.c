@@ -135,7 +135,7 @@ static void __send_file(int sockfd, FILE* fp) {
 			page_buf->end = -1;
 		}
 		
-		send(sockfd, page_buf, sizeof(struct evict_page), 0);
+		send(sockfd, page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
 		count++;
 		status = read_status(sockfd);
 		if (status == CLFS_END) {
