@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 }
 
 static void __send_file(int sockfd, FILE* fp) {
-	struct evict_page *page_buf;
+	struct evict_page *page_buf = NULL;
 	size_t buflen;
 	int count = 0;
 	enum clfs_status status;
