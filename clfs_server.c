@@ -117,8 +117,9 @@ static void __send_file(int sockfd, FILE* fp) {
 	enum clfs_status status;
 
 	while (1) {
+		bzero(&page_buf, sizeof(struct evict_page));
 		buflen = fread(page_buf->data, 1, SEND_SIZE, fp);
-		printf("Page %d, len %lu\n", count,buflen);
+		printf("Page %d, len %lu\n", count, buflen);
 		page_buf->end = 0;
 		if (buflen < SEND_SIZE) {
 			printf("Reaching last page with len %lu \n", buflen);
@@ -127,7 +128,7 @@ static void __send_file(int sockfd, FILE* fp) {
 		if (buflen == 0)
 			page_buf->end = -1;
 		
-		send(sockfd, page_buf, sizeof(struct evict_page), 0);
+		send(sockfd, page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
 		count++;
 		if (page_buf->end) {
 			/* after last page we are done */
