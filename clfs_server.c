@@ -128,15 +128,17 @@ static void __send_file(int sockfd, FILE* fp) {
 		if (page_buf->end) {
 			/* after last page we are done */
 			printf("Send %d pages\n", count);
-			return;
+			goto out;
 		}
 		
 		r = read_status(sockfd);
 		if (r != CLFS_OK) {
 			perror("Oops!");
-			return;
+			goto out;
 		}
 	}
+out:
+	free(page_buf);
 }
 
 static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
@@ -228,6 +230,7 @@ void *pthread_fn(void *arg)
 		rtn = read_status(new_fd);
 		if (rtn == CLFS_OK) {
 			/* delete file on server? */
+			unlink((const char *)path);
 		}
 		break;
 	case CLFS_RM:
