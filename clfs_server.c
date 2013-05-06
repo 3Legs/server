@@ -13,6 +13,7 @@
 #define PORT 8888
 #define MAX_PENDING_CONNECTIONS SOMAXCONN
 #define REQ_SIZE_32BIT 12
+#define SEND_SIZE 4096
 
 enum clfs_type {
 	CLFS_PUT,
@@ -34,7 +35,7 @@ enum clfs_status {
 };
 
 struct evict_page {
-	char data[4096];
+	char data[SEND_SIZE];
 	int end;
 };
 
@@ -42,6 +43,7 @@ pthread_mutex_t work_mutex;
 struct sockaddr_in servip, clntip;
 void *pthread_fn(void *arg);
 void send_status(int new_fd, enum clfs_status status);
+int read_status(int fd);
 
 int main(int argc, char** argv)
 {
@@ -107,27 +109,50 @@ int main(int argc, char** argv)
 	close(socketfd);
 }
 
+static void __send_file(int sockfd, FILE* fp) {
+	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
+	size_t buflen;
+	int count = 0;
+	int r;
 
-static int __recv_file(int sockfd, char * path, unsigned int size) {
+	while (1) {
+		buflen = fread(page_buf->data, 1, SEND_SIZE, fp);
+
+		page_buf->end = 0;
+		if (buflen < SEND_SIZE) {
+			page_buf->end = buflen;
+		}
+		
+		send(sockfd, page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
+		count++;
+		if (page_buf->end) {
+			/* after last page we are done */
+			printf("Send %d pages\n", count);
+			return;
+		}
+		
+		r = read_status(sockfd);
+		if (r != CLFS_OK) {
+			perror("Oops!");
+			return;
+		}
+	}
+}
+
+static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
 	int r;
 	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
 	size_t buflen;
 	struct stat st;
 	int count = 0;
 
-	FILE *fp = fopen((const char *)path, "w");
-	if (fp == NULL) {
-		r = CLFS_ACCESS;
-		goto out_page_buf;
-	}
-	
 	while (1) {
 		r = recv(sockfd, page_buf, sizeof(struct evict_page), MSG_WAITALL);
 		count++;
 		if (page_buf->end) {
 			buflen = page_buf->end;
 		} else {
-			buflen = 4096;
+			buflen = SEND_SIZE;
 			send_status(sockfd, CLFS_OK);			
 		}
 
@@ -135,7 +160,7 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 		if (r < buflen) {
 			printf("Receive %d pages in total\n", count);
 			r =  CLFS_ACCESS;
-			goto out_fp;
+			goto out_page_buf;
 		}
 		
 		if (page_buf->end)
@@ -143,11 +168,10 @@ static int __recv_file(int sockfd, char * path, unsigned int size) {
 	} 
 	
 	printf("[Thread]Receive %d pages in total\n", count);
-out_fp:
-	fclose(fp);
 out_page_buf:
 	free(page_buf);
-	stat(path, &st);
+	int fno = fileno(fp);
+	fstat(fno, &st);
 	if (size > st.st_size) {
 		printf("[Thread]Received file size is too small\n");
 		r =  CLFS_ERROR;
@@ -162,6 +186,7 @@ void *pthread_fn(void *arg)
 {
 	struct clfs_req req;
 	int rtn;
+	FILE *fp;
 	int new_fd = *(int *)arg;
 	char *path = malloc(30);
 
@@ -174,58 +199,44 @@ void *pthread_fn(void *arg)
 		goto end_all;
 	}
 
-	
 	sprintf(path, "clfs_store/%d.dat", req.inode);
-	send_status(new_fd, CLFS_OK);
-
-	if (req.type == CLFS_PUT) {
+	switch(req.type) {
+	case CLFS_PUT:
 		printf("[Thread]Receive PUT request\n");
 		if (req.size > 0) {
-			rtn = __recv_file(new_fd, path, req.size);
+			fp = fopen((const char *)path, "w");
+			if (fp == NULL) {
+				perror("[Thread]Can't access file\n");
+				send_status(new_fd, CLFS_ACCESS);
+				break;
+			}
+			send_status(new_fd, CLFS_OK);
+			rtn = __recv_file(new_fd, req.size, fp);
 			send_status(new_fd, rtn);
 		}
-		goto end_all;
+		break;
+	case CLFS_GET:
+		printf("[Thread]Receive GET request\n");
+		fp = fopen((const char *)path, "r");
+		if (fp == NULL) {
+			perror("[Thread]Can't access file\n");
+			send_status(new_fd, CLFS_ACCESS);
+			break;
+		}
+		send_status(new_fd, CLFS_OK);
+		__send_file(new_fd, fp);
+		rtn = read_status(new_fd);
+		if (rtn == CLFS_OK) {
+			/* delete file on server? */
+		}
+		break;
+	case CLFS_RM:
+		break;
 	}
 
-/* 	if (req.type == CLFS_GET) { */
-/* 		printf("Receive GET request\n"); */
-/* 		unsigned char *data = malloc(req.size); */
-
-/* 		fp = fopen(path, "r"); */
-/* 		if (fp) { */
-/* 			send_status(new_fd, CLFS_OK); */
-/* 		} */
-/* 		else { */
-/* 			send_status(new_fd, CLFS_INVAL); */
-/* 			goto end_GET; */
-/* 		} */
-
-/* 		rtn = fread(data, 1, req.size, fp); */
-/* 		if (rtn != req.size) { */
-/* 			send_status(new_fd, CLFS_ACCESS); */
-/* 			goto end_GET; */
-/* 		} */
-
-/* 		/\* Send OK and data to client *\/ */
-/* 		send_status(new_fd, CLFS_OK); */
-
-/* 		/\* Exit the thread *\/ */
-/* 	end_GET: */
-/* 		fclose(fp); */
-/* 		free(data); */
-/* 	} */
-
-/* 	if (req.type == CLFS_RM) { */
-/* 		rtn = remove(path); */
-/*  		if(rtn != 0 ) { */
-/*  			send_status(new_fd, CLFS_INVAL); */
-/*  			goto end_RM; */
-/*  		} */
-/* 		printf("%s file deleted successfully.\n", path); */
-/* 		send_status(new_fd, CLFS_OK); */
-/* 	} */
-/* end_RM: */
 end_all:
+	if (fp)
+		fclose(fp);
 	free(path);
 	close(new_fd);
 	printf("[Thread] about to exit\n");
@@ -249,4 +260,13 @@ void send_status(int new_fd, enum clfs_status status) {
 	default:
 		perror("Fine!\n");
 	}
+}
+
+inline int read_status(int fd) {
+	int r = 0;
+	int len;
+	len = recv(fd, &r, sizeof(int), 0);
+	if (len == sizeof(int))
+		return r;
+	return CLFS_ERROR;
 }
