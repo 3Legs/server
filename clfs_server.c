@@ -127,7 +127,7 @@ static void __send_file(int sockfd, FILE* fp) {
 		if (buflen == 0)
 			page_buf->end = -1;
 		
-		send(sockfd, page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
+		send(sockfd, page_buf, sizeof(struct evict_page), 0);
 		count++;
 		if (page_buf->end) {
 			/* after last page we are done */
