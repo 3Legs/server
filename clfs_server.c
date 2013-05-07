@@ -25,7 +25,7 @@ struct clfs_req {
 	enum clfs_type type;
 	unsigned int inode;
 	unsigned int size;
-  };
+};
 
 enum clfs_status {
 	CLFS_OK = 0,            /* Success */
@@ -220,6 +220,7 @@ void *pthread_fn(void *arg)
 			send_status(new_fd, CLFS_OK);
 			rtn = __recv_file(new_fd, req.size, fp);
 			send_status(new_fd, rtn);
+			printf("Evict Page size: %d\n", (int)sizeof(struct evict_page));
 		}
 		break;
 	case CLFS_GET:
