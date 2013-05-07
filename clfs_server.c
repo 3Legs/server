@@ -112,41 +112,24 @@ int main(int argc, char** argv)
 }
 
 static void __send_file(int sockfd, FILE* fp) {
-	struct evict_page *page_buf = NULL;
+	struct evict_page page_buf;
 	size_t buflen;
-	int count = 0;
-	enum clfs_status status;
+	int flag;
 
 	while (1) {
-		if (page_buf)
-			free(page_buf);
-		page_buf = malloc(sizeof(struct evict_page));
+		buflen = fread(page_buf.data, 1, SEND_SIZE, fp);
+		printf("len %lu\n",buflen);
 
-		buflen = fread(page_buf->data, 1, SEND_SIZE, fp);
-
-		printf("Page %d, len %lu\n", count, buflen);
-		page_buf->end = 0;
+		page_buf.end = SEND_SIZE;
 		if (buflen < SEND_SIZE) {
-			printf("Reaching last page with len %lu \n", buflen);
-			page_buf->end = buflen;
-		}
-		if (buflen == 0) {
-			printf("Buf has 0 length, weird\n");
-			page_buf->end = -1;
+			flag =1;
+			page_buf.end = buflen;
 		}
 		
-		send(sockfd, page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
-		count++;
-		status = read_status(sockfd);
-		if (status == CLFS_END) {
-			printf("[Thread]Send %d pages\n", count);
-			goto out;
-		}
-		printf("About to send page %d\n", count);
+		send(sockfd, &page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
+		if (flag)
+			break;
 	}
-out:
-	if (page_buf)
-		free(page_buf);
 }
 
 static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
