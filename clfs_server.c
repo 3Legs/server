@@ -113,16 +113,21 @@ int main(int argc, char** argv)
 
 static void __send_file(int sockfd, FILE* fp) {
 	char *buf = malloc(SEND_SIZE);
+	enum clfs_status status;
 	size_t buflen;
 	int flag;
 	int len;
 
 	while (1) {
+		status = read_status(sockfd);
+		if (status != CLFS_NEXT)
+			break;
+
 		buflen = fread(buf, 1, SEND_SIZE, fp);
 		printf("len %lu\n",buflen);
 
-		if (buflen < SEND_SIZE) {
-			flag =1;
+		if (buflen <= 0) {
+			break;
 		}
 		
 		len = send(sockfd, buf, buflen, MSG_NOSIGNAL);
@@ -130,8 +135,7 @@ static void __send_file(int sockfd, FILE* fp) {
 			perror("Error in sending");
 			break;
 		}
-		if (flag)
-			break;
+
 	}
 	free(buf);
 }
@@ -266,7 +270,7 @@ void send_status(int new_fd, enum clfs_status status) {
 enum clfs_status read_status(int fd) {
 	enum clfs_status s;
 	int len;
-	len = recv(fd, &s, sizeof(enum clfs_status), 0);
+	len = recv(fd, &s, sizeof(enum clfs_status), MSG_WAITALL);
 	if (len == sizeof(enum clfs_status))
 		return s;
 	printf("[Thread] Something wrong in read_status\n");
