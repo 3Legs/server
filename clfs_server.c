@@ -115,6 +115,7 @@ static void __send_file(int sockfd, FILE* fp) {
 	char *buf = malloc(SEND_SIZE);
 	size_t buflen;
 	int flag;
+	int len;
 
 	while (1) {
 		buflen = fread(buf, 1, SEND_SIZE, fp);
@@ -124,7 +125,11 @@ static void __send_file(int sockfd, FILE* fp) {
 			flag =1;
 		}
 		
-		send(sockfd, buf, buflen, MSG_NOSIGNAL);
+		len = send(sockfd, buf, buflen, MSG_NOSIGNAL);
+		if (len == -1) {
+			perror("Error in sending");
+			break;
+		}
 		if (flag)
 			break;
 	}
