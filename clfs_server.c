@@ -114,15 +114,19 @@ int main(int argc, char** argv)
 static void __send_file(int sockfd, FILE* fp) {
 	char *buf = malloc(SEND_SIZE);
 	size_t len, total_len = 0;
-
+	int i;
 	while (1) {
-
 		len = fread(buf, 1, SEND_SIZE, fp);
 		if (len <= 0) {
 			printf("Total len %d sent\n", (int)total_len);
 			goto out;
 		}
 		len = send(sockfd, buf, len, MSG_NOSIGNAL);
+
+		for (i=0; i<len ;i++){
+			printf("%c",buf[i]);
+		}
+		printf("\n");
 		total_len += len;
 	}
 out:
