@@ -147,41 +147,19 @@ out:
 
 static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
 	int r;
-	struct evict_page *page_buf = malloc(sizeof(struct evict_page));
-	size_t buflen;
-	struct stat st;
-	int count = 0;
+	int len, total_len = 0;
+	char *buf = malloc(SEND_SIZE);
 
-	while (1) {
-		r = recv(sockfd, page_buf, sizeof(struct evict_page), MSG_WAITALL);
-		count++;
-		if (page_buf->end) {
-			buflen = page_buf->end;
-			send_status(sockfd, CLFS_END);
-		} else {
-			buflen = SEND_SIZE;
-			send_status(sockfd, CLFS_NEXT);			
-		}
-
-		r = fwrite((const char*) (page_buf->data), 1, buflen, fp);
-		if (r < buflen) {
-			printf("[Thread]Receive %d pages in total\n", count);
-			r =  CLFS_ACCESS;
-			goto out_page_buf;
-		}
-		
-		if (page_buf->end)
-			break;
+	while ((len = recv(sockfd, buf, SEND_SIZE, MSG_WAITALL)) > 0) {
+		r = fwrite((const char*) buf, 1, len, fp);
+		total_len += len;
 	} 
-	
-	printf("[Thread]Receive %d pages in total\n", count);
-out_page_buf:
-	free(page_buf);
-	int fno = fileno(fp);
-	fstat(fno, &st);
-	if (size > st.st_size) {
-		printf("[Thread]Received file size is too small\n");
-		r =  CLFS_OK;
+	if (len < 0)
+		printf("[Thread] Receive error %d\n", len);
+	free(buf);
+	if (total_len != size) {
+		printf("[Thread]Received file size error: %d, %d\n", total_len, (int)size);
+		r =  CLFS_ERROR;
 	} else {
 		printf("[Thread]Received file OK!\n");
 		r =  CLFS_OK;
