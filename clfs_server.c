@@ -118,7 +118,7 @@ static void __send_file(int sockfd, FILE* fp) {
 	while (1) {
 
 		len = fread(buf, 1, SEND_SIZE, fp);
-		if (buf <= 0) {
+		if (len <= 0) {
 			printf("Total len %d sent\n", (int)total_len);
 			goto out;
 		}
@@ -139,7 +139,6 @@ static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
 		if (total_len + len > size)
 			len = size - total_len;
 		r = fwrite((const char*) buf, 1, len, fp);
-		printf("LEN: %d\n", len);
 		total_len += len;
 		if (total_len >= size) break;
 	} 
