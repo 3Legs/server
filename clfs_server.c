@@ -112,24 +112,23 @@ int main(int argc, char** argv)
 }
 
 static void __send_file(int sockfd, FILE* fp) {
-	struct evict_page page_buf;
+	char *buf = malloc(SEND_SIZE);
 	size_t buflen;
 	int flag;
 
 	while (1) {
-		buflen = fread(page_buf.data, 1, SEND_SIZE, fp);
+		buflen = fread(buf, 1, SEND_SIZE, fp);
 		printf("len %lu\n",buflen);
 
-		page_buf.end = SEND_SIZE;
 		if (buflen < SEND_SIZE) {
 			flag =1;
-			page_buf.end = buflen;
 		}
 		
-		send(sockfd, &page_buf, sizeof(struct evict_page), MSG_NOSIGNAL);
+		send(sockfd, buf, buflen, MSG_NOSIGNAL);
 		if (flag)
 			break;
 	}
+	free(buf);
 }
 
 static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
