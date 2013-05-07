@@ -151,6 +151,8 @@ static int __recv_file(int sockfd, unsigned int size, FILE* fp) {
 	char *buf = malloc(SEND_SIZE);
 
 	while ((len = recv(sockfd, buf, SEND_SIZE, MSG_WAITALL)) > 0) {
+		if (total_len + SEND_SIZE > size)
+			len = size - total_len;
 		r = fwrite((const char*) buf, 1, len, fp);
 		total_len += len;
 	} 
