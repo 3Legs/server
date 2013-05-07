@@ -203,6 +203,7 @@ void *pthread_fn(void *arg)
 		rtn = read_status(new_fd);
 		if (rtn == CLFS_OK) {
 			/* delete file on server? */
+			printf("Send file success!\n");
 			unlink((const char *)path);
 		}
 		break;
