@@ -23,22 +23,15 @@ enum clfs_type {
 
 struct clfs_req {
 	enum clfs_type type;
-	unsigned int inode;
-	unsigned int size;
+	uint32_t inode;
+	uint32_t size;
 };
 
 enum clfs_status {
 	CLFS_OK = 0,            /* Success */
 	CLFS_INVAL = 22,    /* Invalid address */
 	CLFS_ACCESS = 13,   /* Could not read/write file */
-	CLFS_ERROR,              /* Other errors */
-	CLFS_NEXT,
-	CLFS_END
-};
-
-struct evict_page {
-	char data[SEND_SIZE];
-	int end;
+	CLFS_ERROR              /* Other errors */
 };
 
 pthread_mutex_t work_mutex;
@@ -184,7 +177,6 @@ void *pthread_fn(void *arg)
 			send_status(new_fd, CLFS_OK);
 			rtn = __recv_file(new_fd, req.size, fp);
 			send_status(new_fd, rtn);
-			printf("Evict Page size: %d\n", (int)sizeof(struct evict_page));
 		}
 		break;
 	case CLFS_GET:
@@ -221,8 +213,6 @@ void send_status(int new_fd, enum clfs_status status) {
 	send(new_fd, &status, sizeof(status), MSG_NOSIGNAL);
 	switch(status) {
 	case CLFS_OK:
-		break;
-	case CLFS_NEXT:
 		break;
 	case CLFS_INVAL:
 		perror("Invalid address\n");
