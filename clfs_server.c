@@ -185,10 +185,10 @@ pthread_fn(void *arg)
 		}
 		break;
 	case CLFS_GET:
-		printf("[Thread]Receive GET request\n");
+		printf("[Thread] Receive GET request\n");
 		fp = fopen((const char *) path, "r");
 		if (fp == NULL) {
-			perror("[Thread]Can't access file\n");
+			perror("[Thread] Can't access file\n");
 			send_status(new_fd, CLFS_ACCESS);
 			break;
 		}
@@ -202,6 +202,8 @@ pthread_fn(void *arg)
 		}
 		break;
 	case CLFS_RM:
+		printf("[Thread] Receive RM request\n");
+		unlink((const char*) path);
 		break;
 	}
 
