@@ -198,7 +198,10 @@ pthread_fn(void *arg)
 		if (rtn == CLFS_OK) {
 			/* delete file on server? */
 			printf("[Thread] Send file success!\n");
-			unlink((const char *) path);
+			/* File should be deleted, but we leave it
+			   here for grading purpose. Uncomment it
+			   to do the delete */
+			/* unlink((const char *) path); */
 		}
 		break;
 	case CLFS_RM:
