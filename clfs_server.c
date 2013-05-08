@@ -171,11 +171,11 @@ pthread_fn(void *arg)
 	sprintf(path, "clfs_store/%d.dat", req.inode);
 	switch (req.type) {
 	case CLFS_PUT:
-		printf("[Thread]Receive PUT request\n");
+		printf("[Thread] Receive PUT request\n");
 		if (req.size > 0) {
 			fp = fopen((const char *) path, "w");
 			if (fp == NULL) {
-				perror("[Thread]Can't access file\n");
+				perror("[Thread] Can't access file\n");
 				send_status(new_fd, CLFS_ACCESS);
 				break;
 			}
