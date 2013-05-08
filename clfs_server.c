@@ -58,7 +58,6 @@ main(int argc, char **argv)
 
 	int tr = 1;
 
-	/* kill "Address already in use" error message */
 	if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &tr, sizeof (int)) ==
 	    -1) {
 		perror("setsockopt");
@@ -71,9 +70,7 @@ main(int argc, char **argv)
 	servip.sin_addr.s_addr = INADDR_ANY;
 	servip.sin_port = htons(PORT);
 
-	/* Bind to port PORT */
-	rtn =
-	    bind(socketfd, (const struct sockaddr *) &servip,
+	rtn = bind(socketfd, (const struct sockaddr *) &servip,
 		 sizeof (struct sockaddr));
 	if (rtn) {
 		perror("Error occured in bind\n");
@@ -96,7 +93,7 @@ main(int argc, char **argv)
 			perror("Error occured in accept\n");
 			continue;
 		}
-		printf("Client connected on socket %d...\n", new_fd);
+		printf("[Server] Client connected on socket %d...\n", new_fd);
 		rtn = pthread_create(&a_thread, NULL, pthread_fn, &new_fd);
 		if (rtn) {
 			perror("Error occured in pthread_create\n");
@@ -115,7 +112,7 @@ __send_file(int sockfd, FILE * fp)
 	while (1) {
 		len = fread(buf, 1, SEND_SIZE, fp);
 		if (len <= 0) {
-			printf("Total len %d sent\n", (int) total_len);
+			printf("[Thread] Total len %d sent\n", (int) total_len);
 			goto out;
 		}
 		len = send(sockfd, buf, len, MSG_NOSIGNAL);
@@ -145,11 +142,11 @@ __recv_file(int sockfd, unsigned int size, FILE * fp)
 		printf("[Thread] Receive error %d\n", len);
 	free(buf);
 	if (total_len != size) {
-		printf("[Thread]Received file size error: %d, %d\n", total_len,
+		printf("[Thread] Received file size error: %d, %d\n", total_len,
 		       (int) size);
 		r = CLFS_ERROR;
 	} else {
-		printf("[Thread]Received file OK!\n");
+		printf("[Thread] Received file OK!\n");
 		r = CLFS_OK;
 	}
 	return r;
@@ -164,7 +161,6 @@ pthread_fn(void *arg)
 	int new_fd = *(int *) arg;
 	char *path = malloc(30);
 
-	/* Receive clfs_req from client */
 	rtn = recv(new_fd, &req, sizeof (struct clfs_req), 0);
 
 	if (rtn != REQ_SIZE_32BIT) {
@@ -201,7 +197,7 @@ pthread_fn(void *arg)
 		rtn = read_status(new_fd);
 		if (rtn == CLFS_OK) {
 			/* delete file on server? */
-			printf("Send file success!\n");
+			printf("[Thread] Send file success!\n");
 			unlink((const char *) path);
 		}
 		break;
@@ -226,13 +222,13 @@ send_status(int new_fd, enum clfs_status status)
 	case CLFS_OK:
 		break;
 	case CLFS_INVAL:
-		perror("Invalid address\n");
+		perror("[Error] Invalid address\n");
 		break;
 	case CLFS_ACCESS:
-		perror("Couldn't read/write (length does not match)\n");
+		perror("[Error] Couldn't read/write (length does not match)\n");
 		break;
 	case CLFS_ERROR:
-		perror("Error occured in communicating\n");
+		perror("[Error] Error occured in communicating\n");
 		break;
 	default:
 		perror("Fine!\n");
@@ -247,6 +243,6 @@ read_status(int fd)
 	len = recv(fd, &s, sizeof (enum clfs_status), 0);
 	if (len == sizeof (enum clfs_status))
 		return s;
-	printf("[Thread] Something wrong in read_status\n");
+	printf("[Error] Something wrong in read_status\n");
 	return CLFS_ERROR;
 }
