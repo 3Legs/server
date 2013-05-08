@@ -54,7 +54,7 @@ main(int argc, char **argv)
 		perror("Error occured in socket\n");
 		exit(1);
 	}
-	printf("[Server]Create socket: %d\n", socketfd);
+	printf("[Server] Create socket: %d\n", socketfd);
 
 	int tr = 1;
 
